@@ -125,9 +125,19 @@ async def generar_plan_con_ia(
             "OpenRouter no ha devuelto una respuesta válida."
         )
 
+    # Código anterior:
+    #if not isinstance(contenido, str):
+    #    raise RuntimeError(
+    #        "La respuesta de la IA no tiene el formato esperado."
+    #    )
+
+    # Código que está funcionando:
     if not isinstance(contenido, str):
         raise RuntimeError(
-            "La respuesta de la IA no tiene el formato esperado."
+          f"La respuesta de la IA no tiene el formato esperado. "
+          f"Tipo recibido: {type(contenido).__name__}. "
+          f"Claves del mensaje: "
+          f"{list(resultado_api['choices'][0]['message'].keys())}"
         )
 
     contenido = contenido.strip()

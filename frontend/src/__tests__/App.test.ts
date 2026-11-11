@@ -3,6 +3,15 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { generarPlan } from '../services/production'
 import App from '../App.vue'
 
+// Simulamos la autenticación de Clerk durante las pruebas.
+vi.mock('@clerk/vue', () => ({
+  useAuth: () => ({
+    getToken: {
+      value: vi.fn().mockResolvedValue('token-de-prueba'),
+    },
+  }),
+}))
+
 // Simulamos el servicio del backend para controlar los errores.
 vi.mock('../services/production', () => ({
   generarPlan: vi.fn(),

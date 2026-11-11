@@ -47,11 +47,13 @@ export interface PlanProduccionResponse {
 
 export async function generarPlan(
   datos: PlanProduccionRequest,
+  token: string,
 ): Promise<PlanProduccionResponse> {
   const response = await fetch('/api/generate-routine', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(datos),
   })

@@ -1,4 +1,12 @@
-from fastapi import APIRouter
+import os
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+
+from clerk_backend_api import authenticate_request_async
+from clerk_backend_api.security.types import (
+    AuthenticateRequestOptions,
+    AuthStatus,
+)
 
 import httpx
 
@@ -11,10 +19,34 @@ from app.services.ai_service import generar_plan_con_ia
 
 router = APIRouter(prefix="/api", tags=["Producción"])
 
+async def verificar_autenticacion(request: Request) -> None:
+    """Comprueba que la petición contiene una sesión válida de Clerk."""
+
+    secret_key = os.getenv("CLERK_SECRET_KEY")
+
+    if not secret_key:
+        raise HTTPException(
+            status_code=500,
+            detail="No está configurada la clave secreta de Clerk.",
+        )
+
+    options = AuthenticateRequestOptions(
+        secret_key=secret_key,
+        accepts_token=["session_token"],
+    )
+
+    auth_state = await authenticate_request_async(request, options)
+
+    if auth_state.status != AuthStatus.SIGNED_IN:
+        raise HTTPException(
+            status_code=401,
+            detail="No autenticado. Inicia sesión para continuar.",
+        )
 
 @router.post("/generate-routine", response_model=PlanProduccionResponse)
 async def generate_routine(
     request: PlanProduccionRequest,
+    _: None = Depends(verificar_autenticacion),
 ) -> PlanProduccionResponse:
     """Genera un plan con IA y utiliza una demostración si falla."""
 

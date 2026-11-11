@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useAuth } from '@clerk/vue'
 import {
   Bot,
   CakeSlice,
@@ -13,10 +14,14 @@ import {
   AlertCircle,
 } from 'lucide-vue-next'
 
+import MusicPlayer from './components/MusicPlayer.vue'
+
 // Cliente HTTP y tipos para comunicarnos con FastAPI.
 import { generarPlan as solicitarPlan } from './services/production'
 
 import AuthControls from './components/AuthControls.vue'
+
+const { getToken } = useAuth()
 
 // Tipos de los datos que enviamos y recibimos.
 import type {
@@ -174,8 +179,15 @@ async function generarPlan() {
       equipamiento: [...equipamiento.value],
     }
 
-    // Solicitamos el plan al backend.
-    const respuesta = await solicitarPlan(datos)
+    // Obtenemos el token de sesión de Clerk.
+    const token = await getToken.value()
+
+    if (!token) {
+      throw new Error('No se ha podido obtener la sesión. Inicia sesión de nuevo.')
+    }
+
+    // Solicitamos el plan al backend con el token de autenticación.
+    const respuesta = await solicitarPlan(datos, token)
 
     // Guardamos la respuesta recibida.
     resultado.value = respuesta
@@ -218,6 +230,9 @@ async function generarPlan() {
             Organiza tu producción con ayuda de la inteligencia artificial.
           </p>
         </div>
+
+        <MusicPlayer />
+
         <AuthControls />
       </header>
 
