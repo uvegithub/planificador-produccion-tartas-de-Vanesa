@@ -1,0 +1,8 @@
+﻿--- Pruebas frontend: migracion JWT ---
+Vitest: 10 pruebas aprobadas, 0 fallidas.
+Compilacion de produccion: correcta (vue-tsc y vite build).
+Dependencia @clerk/vue: desinstalada.
+
+--- Verificacion final frontend para Docker ---
+Pruebas Vitest: 10 aprobadas, 0 fallidas.
+Compilacion de produccion: correcta (vue-tsc y vite build).

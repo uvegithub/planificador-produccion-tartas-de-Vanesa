@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useAuth } from '@clerk/vue'
+import { getToken } from './services/auth'
 import {
   Bot,
   CakeSlice,
@@ -20,8 +20,6 @@ import MusicPlayer from './components/MusicPlayer.vue'
 import { generarPlan as solicitarPlan } from './services/production'
 
 import AuthControls from './components/AuthControls.vue'
-
-const { getToken } = useAuth()
 
 // Tipos de los datos que enviamos y recibimos.
 import type {
@@ -179,8 +177,8 @@ async function generarPlan() {
       equipamiento: [...equipamiento.value],
     }
 
-    // Obtenemos el token de sesión de Clerk.
-    const token = await getToken.value()
+    // Obtenemos el token JWT de nuestra API.
+    const token = getToken()
 
     if (!token) {
       throw new Error('No se ha podido obtener la sesión. Inicia sesión de nuevo.')

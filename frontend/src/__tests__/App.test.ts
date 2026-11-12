@@ -3,13 +3,9 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { generarPlan } from '../services/production'
 import App from '../App.vue'
 
-// Simulamos la autenticación de Clerk durante las pruebas.
-vi.mock('@clerk/vue', () => ({
-  useAuth: () => ({
-    getToken: {
-      value: vi.fn().mockResolvedValue('token-de-prueba'),
-    },
-  }),
+// Simulamos la autenticación JWT durante las pruebas.
+vi.mock('../services/auth', () => ({
+  getToken: vi.fn(() => 'token-de-prueba'),
 }))
 
 // Simulamos el servicio del backend para controlar los errores.
@@ -17,7 +13,7 @@ vi.mock('../services/production', () => ({
   generarPlan: vi.fn(),
 }))
 
-// Simulamos los controles de autenticación de Clerk.
+// Simulamos los controles de autenticación.
 vi.mock('../components/AuthControls.vue', () => ({
   default: {
     template: '<div data-testid="auth-controls"></div>',

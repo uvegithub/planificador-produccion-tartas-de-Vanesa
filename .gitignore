@@ -1,2 +1,13 @@
 .vercel
 .env*
+
+# Bases de datos locales
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/

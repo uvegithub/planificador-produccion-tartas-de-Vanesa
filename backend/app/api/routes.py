@@ -1,52 +1,107 @@
-import os
-
-from fastapi import APIRouter, Depends, HTTPException, Request
-
-from clerk_backend_api import authenticate_request_async
-from clerk_backend_api.security.types import (
-    AuthenticateRequestOptions,
-    AuthStatus,
-)
-
 import httpx
 
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from app.auth import (
+    authenticate_user,
+    create_access_token,
+    create_user,
+    get_user_from_token,
+)
+from app.models.auth_schemas import (
+    AuthResponse,
+    LoginRequest,
+    RegisterRequest,
+    UserResponse,
+)
 from app.models.schemas import (
     PlanProduccionRequest,
     PlanProduccionResponse,
 )
-
 from app.services.ai_service import generar_plan_con_ia
+
 
 router = APIRouter(prefix="/api", tags=["Producción"])
 
-async def verificar_autenticacion(request: Request) -> None:
-    """Comprueba que la petición contiene una sesión válida de Clerk."""
+security = HTTPBearer(auto_error=False)
 
-    secret_key = os.getenv("CLERK_SECRET_KEY")
 
-    if not secret_key:
-        raise HTTPException(
-            status_code=500,
-            detail="No está configurada la clave secreta de Clerk.",
-        )
+def verificar_autenticacion(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+) -> UserResponse:
+    """Valida el token JWT y devuelve el usuario autenticado."""
 
-    options = AuthenticateRequestOptions(
-        secret_key=secret_key,
-        accepts_token=["session_token"],
-    )
-
-    auth_state = await authenticate_request_async(request, options)
-
-    if auth_state.status != AuthStatus.SIGNED_IN:
+    if credentials is None:
         raise HTTPException(
             status_code=401,
             detail="No autenticado. Inicia sesión para continuar.",
         )
 
+    user = get_user_from_token(credentials.credentials)
+
+    if user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Token inválido o caducado. Inicia sesión de nuevo.",
+        )
+
+    return UserResponse(**user)
+
+
+@router.post("/auth/register", response_model=AuthResponse, status_code=201)
+async def register(request: RegisterRequest) -> AuthResponse:
+    """Registra un usuario nuevo y devuelve su token JWT."""
+
+    user = create_user(request.email, request.password)
+
+    if user is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Ya existe una cuenta con ese correo electrónico.",
+        )
+
+    token = create_access_token(user["id"])
+
+    return AuthResponse(
+        access_token=token,
+        user=UserResponse(**user),
+    )
+
+
+@router.post("/auth/login", response_model=AuthResponse)
+async def login(request: LoginRequest) -> AuthResponse:
+    """Comprueba las credenciales e inicia una sesión."""
+
+    user = authenticate_user(request.email, request.password)
+
+    if user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Correo electrónico o contraseña incorrectos.",
+        )
+
+    token = create_access_token(user["id"])
+
+    return AuthResponse(
+        access_token=token,
+        user=UserResponse(**user),
+    )
+
+
+@router.get("/auth/me", response_model=UserResponse)
+async def get_current_user(
+    user: UserResponse = Depends(verificar_autenticacion),
+) -> UserResponse:
+    """Devuelve los datos del usuario autenticado."""
+
+    return user
+
+
 @router.post("/generate-routine", response_model=PlanProduccionResponse)
 async def generate_routine(
     request: PlanProduccionRequest,
-    _: None = Depends(verificar_autenticacion),
+    _: UserResponse = Depends(verificar_autenticacion),
 ) -> PlanProduccionResponse:
     """Genera un plan con IA y utiliza una demostración si falla."""
 

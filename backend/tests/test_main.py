@@ -1,3 +1,5 @@
+import re
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -21,9 +23,37 @@ def test_root():
     response = client.get("/")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "message": "API funcionando correctamente"
-    }
+    assert "text/html" in response.headers["content-type"]
+    assert '<div id="app"></div>' in response.text
+
+# Comprueba que FastAPI sirve los archivos CSS y JavaScript
+# generados durante la compilación de Vue.
+def test_frontend_assets():
+    response = client.get("/")
+
+    assets = re.findall(
+        r'(?:src|href)="(/assets/[^"]+)"',
+        response.text,
+    )
+
+    assert assets
+    assert any(asset.endswith(".js") for asset in assets)
+    assert any(asset.endswith(".css") for asset in assets)
+
+    for asset in assets:
+        asset_response = client.get(asset)
+        assert asset_response.status_code == 200
+
+
+# Comprueba que las rutas internas de Vue devuelven
+# el index.html para permitir la navegación SPA.
+def test_frontend_spa_fallback():
+    response = client.get("/ruta-de-prueba")
+
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert '<div id="app"></div>' in response.text
+
 
 # Comprueba que el endpoint de salud confirma que la API
 # está activa y funcionando.
