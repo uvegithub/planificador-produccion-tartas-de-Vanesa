@@ -1,4 +1,4 @@
-﻿[services.frontend]
+[services.frontend]
 root = "frontend/"
 
 [services.backend]
